@@ -1,0 +1,23 @@
+project:
+  name: "AML Detection Colombia"
+  
+data:
+  sfc_url: "https://www.datos.gov.co/api/views/bn4c-kptq/rows.csv"
+  raw_path: "data/raw/"
+  processed_path: "data/processed/"
+  synthetic_path: "data/synthetic/"
+
+amlsim:
+  n_agents: 5000
+  n_timesteps: 365
+  initial_balance: 5000000
+
+model:
+  test_size: 0.2
+  random_state: 42
+  
+pytorch:
+  device: "cuda"
+  batch_size: 256
+  epochs: 100
+  learning_rate: 0.001

@@ -1,0 +1,7 @@
+data/raw/*.csv
+data/processed/*.csv
+data/synthetic/*.csv
+models/saved_models/*.pt
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
