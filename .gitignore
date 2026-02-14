@@ -1,6 +1,9 @@
 data/raw/*.csv
 data/processed/*.csv
 data/synthetic/*.csv
+models/*.pt
+models/*.pth
+models/*.joblib
 models/saved_models/*.pt
 __pycache__/
 *.pyc

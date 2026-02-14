@@ -34,31 +34,51 @@ def generate_aml_colombia():
     
     df = pd.DataFrame(data)
     
-    # Calcula balances
-    df['newbalanceOrig'] = df['oldbalanceOrg'] - df['amount']
+    # Calcula balances (evita negativos)
+    df['newbalanceOrig'] = np.maximum(0, df['oldbalanceOrg'] - df['amount'])
     df['newbalanceDest'] = df['oldbalanceDest'] + df['amount']
     
-    # Genera fraude/lavado (patrones sospechosos)
+    # Genera fraude/lavado con patrones complejos y realistas
     df['isFraud'] = 0
     df['isFlaggedFraud'] = 0
     
-    # Patrones lavado:
-    # 1. Montos muy altos (>20M COP)
-    high_amount = df['amount'] > 20000000
-    # 2. CASH_OUT frecuentes
+    # Calcula indicadores auxiliares (sin etiquetarlos como fraude aún)
+    high_amount = df['amount'] > 20000000  # >20M COP
+    very_high_amount = df['amount'] > 30000000  # >30M COP
+    round_amount = (df['amount'] % 1000000 == 0) & (df['amount'] > 5000000)  # Montos redondos (smurfing)
     cash_out = df['type'] == 'CASH_OUT'
-    # 3. Balances finales sospechosos (exactos a 0)
-    zero_balance = (df['newbalanceOrig'] < 100) & (df['newbalanceDest'] < 100)
+    transfer = df['type'] == 'TRANSFER'
     
-    # Marca fraudes (combinación patrones)
-    fraud_mask = high_amount & (cash_out | zero_balance)
-    fraud_indices = np.random.choice(
-        df[fraud_mask].index, 
-        size=min(int(n_samples * fraud_rate), fraud_mask.sum()),
-        replace=False
-    )
-    df.loc[fraud_indices, 'isFraud'] = 1
-    df.loc[df['amount'] > 30000000, 'isFlaggedFraud'] = 1
+    # Balance patterns (sin usar como regla directa)
+    depletes_account = (df['newbalanceOrig'] < 100) & (df['oldbalanceOrg'] > 1000000)  # Vacía cuenta
+    high_ratio = (df['amount'] / (df['oldbalanceOrg'] + 1)) > 0.8  # >80% del balance
+    
+    # PATRONES DE LAVADO REALISTAS (múltiples combinaciones, no deterministas)
+    
+    # Patrón 1: Structuring - montos redondos frecuentes (evitan reportes >10M COP SARLAFT)
+    structuring = round_amount & (df['amount'] < 10000000) & (cash_out | transfer)
+    
+    # Patrón 2: Smurfing - múltiples transferencias medianas
+    smurfing = (df['amount'] > 3000000) & (df['amount'] < 9000000) & transfer
+    
+    # Patrón 3: Layering - montos altos que vacían cuentas
+    layering = high_amount & depletes_account & cash_out
+    
+    # Patrón 4: Montos extremadamente altos con ratio sospechoso
+    high_risk = very_high_amount & high_ratio
+    
+    # Combina patrones con probabilidades (NO determinista)
+    fraud_candidates = structuring | smurfing | layering | high_risk
+    
+    # Selecciona aleatoriamente del conjunto de candidatos para llegar al 1%
+    fraud_candidate_indices = df[fraud_candidates].index
+    if len(fraud_candidate_indices) > 0:
+        n_fraud = min(int(n_samples * fraud_rate), len(fraud_candidate_indices))
+        fraud_indices = np.random.choice(fraud_candidate_indices, size=n_fraud, replace=False)
+        df.loc[fraud_indices, 'isFraud'] = 1
+    
+    # isFlaggedFraud: sistema automático de alerta (>30M sin ser necesariamente fraude)
+    df.loc[very_high_amount, 'isFlaggedFraud'] = 1
     
     # Guarda
     output_path = Path("data/synthetic")
