@@ -153,7 +153,7 @@ def train_models(data_path='data/synthetic/aml_colombia_synthetic.csv'):
         random_state=42,
         eval_metric='aucpr',
         tree_method='hist',
-        device='cuda' if torch.cuda.is_available() else 'cpu'
+        device='cuda' if torch.cuda.is_available() else 'cpu'  # Requires XGBoost >= 2.0.0
     )
     
     model_xgb.fit(X_train_scaled, y_train)
