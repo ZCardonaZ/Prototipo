@@ -1,5 +1,6 @@
 project:
   name: "AML Detection Colombia"
+  random_seed: 42
   
 data:
   sfc_url: "https://www.datos.gov.co/api/views/bn4c-kptq/rows.csv"
@@ -16,8 +17,45 @@ model:
   test_size: 0.2
   random_state: 42
   
+# Cross-validation
+cross_validation:
+  n_folds: 5
+  stratified: true
+  shuffle: true
+  
+# SMOTE (balanceo de clases)
+smote:
+  sampling_strategy: 0.5  # Ratio minoritaria/mayoritaria
+  k_neighbors: 5
+  
+# Feature Engineering
+features:
+  high_amount_threshold: 10000000  # 10M COP
+  round_threshold: 100000  # 100k COP
+  
+# XGBoost
+xgboost:
+  n_estimators: 200
+  max_depth: 7
+  learning_rate: 0.1
+  subsample: 0.8
+  colsample_bytree: 0.8
+  use_scale_pos_weight: true
+  
+# Random Forest
+random_forest:
+  n_estimators: 200
+  max_depth: 15
+  min_samples_split: 10
+  min_samples_leaf: 5
+  class_weight: "balanced"
+  
+# PyTorch Neural Network
 pytorch:
   device: "cuda"
   batch_size: 256
   epochs: 100
   learning_rate: 0.001
+  hidden_layers: [128, 64, 32]
+  dropout: 0.3
+  use_batch_norm: true
